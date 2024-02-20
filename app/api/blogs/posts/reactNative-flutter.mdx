@@ -1,0 +1,21 @@
+---
+title: 记一次react-native和flutter环境搭建遇到的问题
+date: 2020-01-14 13:29:15
+tags: react-native flutter
+---
+### 安装Android studio
+1. 模拟器无法运行的问题
+    1. [Flutter中模拟器无法启动的解决方法](https://blog.csdn.net/lizzy05/article/details/89490289)
+    1. [Android Studio启动虚拟器报错：VT-x is disabled in BIOS](https://segmentfault.com/a/1190000019153507)
+
+2. 设置好环境变量
+    1. ANDROID_HOME:C:\Users\liuqiang\AppData\Local\Android\Sdk
+    2. $ANDROID_HOME/platform-tools
+    3. JAVA_HOME:E:\Java\jdk1.8.0_91
+    4. 项目打包时候需要将$JAVA_HOME/lib/tools.jar 复制到jre/lib下面
+
+3. 当Running jetifier to migrate libraries to AndroidX.得时候会报错，要重新下载依赖<code>npm I jetifier</code>
+    >独立的 Jetifier 工具可将依赖于支持库的库迁移为依赖于等效的 AndroidX 软件包。该工具可让您直接迁移单个库，而无需使用 Android Studio 附带的 Android Gradle 插件。
+
+#### 参考
+1. [ jetifier is included and ran automatically with react-native-community/cli for React Native versions 0.60 and above, so you do not need to install and run jetifier manually.](https://github.com/mikehardy/jetifier)

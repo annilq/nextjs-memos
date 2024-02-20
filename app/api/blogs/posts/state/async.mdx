@@ -1,0 +1,52 @@
+---
+title: ES6 async／await 小记 
+date: 2017-07-02 21:48:01
+tags: async await promise
+---
+async await 基于promise
+1. async function 创建之后立即返回一个promise对象
+2. await 关键字只能在async function 中，后面跟着的操作的返回值可以是promise对象也可以是原始值,如果事原始值等于事同步操作
+3. async function return的值等于async function返回的promise对象resolve的值
+4. 互相不依赖的async function可以用promise.all来将所有的操作一起await
+```javascript
+// 同步操作
+var sleep = function(para) {
+  return para + 2;
+};
+// 异步操作
+var sleep2 = function(para) {
+  return new Promise(function(resolve, reject) {
+    setTimeout(
+      function() {
+        resolve(para * para);
+      },
+      2000
+    );
+  });
+};
+// 互相依赖
+async function asyncSleep(para) {
+  var result1 = await sleep(para);
+  var result2 = await sleep2(result1);
+  var result3 = await sleep2(result2);
+  return result3;
+}
+// 互相不依赖的function
+async function asyncSleep2(para) {
+  var result1 = await sleep(para);
+  return await Promise.all([sleep2(result1), sleep2(2)]);
+}
+asyncSleep(2).then(function(result2) {
+  //result2 is 256
+  console.log("asyncSleep", result2);
+});
+asyncSleep2(2).then(function([result, result2]) {
+  //16 4
+  console.log("asyncSleep2", result, result2);
+});
+
+```
+
+参考链接
+[ECMAScript 6 入门 async 函数](http://es6.ruanyifeng.com/#docs/async)
+[6 Reasons Why JavaScript’s Async/Await Blows Promises Away](https://hackernoon.com/6-reasons-why-javascripts-async-await-blows-promises-away-tutorial-c7ec10518dd9)

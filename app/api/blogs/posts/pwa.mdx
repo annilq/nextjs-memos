@@ -1,0 +1,70 @@
+---
+title: PWA小计
+date: 2017-12-18 11:49:40
+tags: PWA
+---
+### PWA简介
+PWA （ Progressive Web Apps，渐进式网页应用）是由谷歌提出的新一代 Web 应用概念，旨在提供可靠、快速、类似 Native 应用的服务方案，PWA 正在迅速成为一套最佳实践。
+
+### PWA涉及的技术点
+- Service Worker
+- Web 应用清单 manifest.json
+
+### Service Worker
+Service workers 本质上充当Web应用程序与浏览器之间的代理服务器，也可以在网络可用时作为浏览器和网络间的代理。他们还允许访问推送通知和后台同步API。
+
+Service Worker的生命周期
+  - 注册
+  - 安装
+  - 激活
+
+Service Worker的运行过程
+  - 检查当前浏览器是否支持 Service Workers
+  - 如果支持，注册 Service Worker 文件
+  - 激活install事件(一般是被用来填充你的浏览器的离线缓存能力)
+    - event.waitUntil() :这会确保Service Worker 不会在 waitUntil() 里面的代码执行完毕之前安装完成
+  - 激活activate事件
+  - 开始监听fetch事件
+    - event.respondWith() 劫持我们的 HTTP 响应，然后你用可以自定义Response更新他们。
+
+### CacheStorage api与 Cache 对象
+#### CacheStorage api
+  1. caches.open() 打开一个Cache对象，返回一个 Promise对象，resolve的结果是一个Cache对象
+  2. caches.keys() 删除一个Cache对象，返回一个 Promise对象，resolve的结果true则表示成功
+  3. caches.delete() 返回一个 Promise对象，resolve的结果是一个Cache对象的数组
+
+#### Cache 对象
+  1. cache.match(request, options) 返回一个 Promise对象，resolve的结果是跟 Cache 对象匹配的第一个已经缓存的请求。
+  2. cache.matchAll(request, options) 返回一个Promise 对象，resolve的结果是跟Cache对象匹配的所有请求组成的数组。
+  3. cache.add(request) 抓取这个URL, 检索并把返回的response对象添加到给定的Cache对象.这在功能上等同于调用 fetch(), 然后使用 cache.put() 将response添加到cache中.
+  4. cache.addAll(requests) 抓取一个URL数组，检索并把返回的response对象添加到给定的Cache对象。
+  5. cache.put(request, response) 同时抓取一个请求及其响应，并将其添加到给定的cache。
+  6. cache.delete(request, options) 搜索key值为request的Cache 条目。如果找到，则删除该Cache 条目，并且返回一个resolve为true的Promise对象；如果未找到，则返回一个resolve为false的Promise对象。
+  7. cache.keys(request, options) 返回一个Promise对象，resolve的结果是Cache对象key值组成的数组。
+  >1. Cache表示用于Request/Response对象对的存储，作为ServiceWorker生命周期的一部分被缓存。
+  >2. CacheStorage
+表示Cache对象的存储。提供一个所有命名缓存的主目录，ServiceWorker可以访问并维护名字字符串到Cache对象的映射。
+
+#### 代码中有注释
+[sw.js](https://github.com/annilq/blog/tree/master/jscode/pwa/sw.js)
+
+###  Web 应用清单 manifest.json
+  - name:用作当用户被提示安装应用时出现的文本。
+  - short_name :用作当应用安装后出现在用户主屏幕上的文本
+  - start_url :决定了当用户从设备的主屏幕开启 Web 应用时所出现的第一个页面。本章稍后会详细介绍。
+根据构建的 Web 应用类型，你可能需要预设如何首次加载。display 字段表示开发者希望他们的 Web 应用如何向用户展示。本章稍后会详细介绍为什么这个字段如此重要。
+  - theme_color :可以对浏览器的地址栏进行着色，以符合网站的主色调。
+icons 字段决定了当 Web 应用被添加到设备主屏幕时所显示的图标。
+  - background_color :name 和 background_color 属性用来显示启动页面
+  - display: 显示模式
+    1. Fullscreen - 打开 Web 应用并占用整个可用的显示区域。
+    2. Standalone - 打开 Web 应用以看起来像一个独立的原生应用。此模式下，用户代理将排除诸如 URL 栏等标准浏览器 UI 元素，但可以包括诸如状态栏和系统返回按钮的其他系统 UI 元素。
+    3. Minimal-ui - 此模式类似于 fullscreen，但为终端用户提供了可访问的最小 UI 元素集合，例如，后退按钮、前进按钮、重载按钮以及查看网页地址的一些方式。
+    4. Browser - 使用操作系统内置的标准浏览器来打开 Web 应用。
+
+[manifest.json](https://github.com/annilq/blog/tree/master/jscode/pwa/manifest.json)
+
+### 参考
+1. [Progressive Web Apps (PWA) 中文版](http://sangka-z.com/PWA-Book-CN/)
+2. [PWA 在饿了么的实践经验](https://zhuanlan.zhihu.com/p/25800461)
+3. [服务工作线程：简介](https://developers.google.com/web/fundamentals/primers/service-workers/)

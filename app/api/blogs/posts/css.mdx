@@ -1,0 +1,71 @@
+---
+title: css modules与css in js
+date: 2022-11-22 10:37:01
+tags: css
+---
+### css modules
+利用 postcss 将css module file转成css file[hasheRule]+stylemodule<{className,hasheRule}>,并通过stylemodule[className] 将tag关联css file
+```css
+//原始 css file
+.header{
+  color:"red"
+}
+
+```
+以上文件通过 postcss css modules插件处理会生成下面两个文件
+```css
+//生成 css file
+// 隔离样式
+.hasheRule{
+  color:"red"
+}
+
+```
+```javascript
+const style={
+  header:"hasheRule"
+}
+export default style
+
+```
+```javascript
+import style from "./style"
+
+export default ()=>{
+  return <div className={style.header}></div>
+}
+
+```
+css in js
+```javascript
+const prefix = 'hi-css'
+
+const css = (styleBlock) => {
+ const hash = someHash(styleBlock);
+ const className = prefix + '__' + hash;
+
+ const styleElement = document.createElement('style');
+  styleElement.textContent = `
+    .${className} {
+      ${styleBlock}
+    }
+ `;
+ document.head.appendChild(styleElement);
+
+ return className;
+};
+
+const className = css(`
+  color: red;
+  padding: 20px;
+`)
+
+```
+
+#### 对比
+css modules 与传统样式表差不多，多了样式隔离
+css in js 够灵活，比inline css功能强大，支持所有css特性 ，样式隔离
+tailwind.css 原子css 无需样式隔离
+
+[手写 Css-Modules 来深入理解它的原理](https://www.51cto.com/article/707429.html)
+[什么是 CSS-in-JS？](https://medium.com/dailyjs/what-is-actually-css-in-js-f2f529a2757)

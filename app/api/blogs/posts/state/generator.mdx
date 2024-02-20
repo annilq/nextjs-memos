@@ -1,0 +1,92 @@
+---
+title: ES6 iterator generator 小记
+date: 2017-09-28 21:10:01
+tags: ES6 generator
+---
+1. 每个迭代器对象都有一个next方法，每次调用这个方法都返回一个含有<code>{done,value}</code>属性的对象
+2. 生成器是一个返回迭代器对象的函数
+3. 可迭代对象具有一个默认迭代器用Symbol.iterator函数属性表示，可以重新定义该函数来添加或者覆盖附属对象的迭代器
+4. 数组，Map，Set中内置了三种迭代器
+  1. entries()
+  2. values()
+  3. keys()
+5. for-of循环每执行一次都会调用可迭代对象的next()方法并将迭代器返回的结果对象的value值存储在一个变量中，指导返回对象的done值为true
+
+### 访问默认迭代器
+```javascript
+const arr=[1,2,3];
+const iterator=arr[Symbol.iterator]()
+console.log(iterator.next());
+```
+### 设置迭代器
+```javascript
+const iter = {
+  items: [],
+  *[Symbol.iterator]() {
+    for (let item of this.items) {
+      yield item;
+    }
+  }
+};
+iter.items.push(1);
+iter.items.push(2);
+for (let item of iter) {
+  console.log(item);
+}
+
+```
+### 迭代器处理异步问题
+```javascript
+// 处理同步
+function runsync(gen) {
+  let iter = gen();
+  var result = iter.next();
+  while (!result.done) {
+    result = iter.next(result.value);
+  }
+}
+// 同步genarator
+function* sync() {
+  var value = yield 1;
+  console.log(value);
+  value = yield 2;
+  console.log(value);
+  value = yield 3;
+  console.log(value);
+}
+
+// 处理异步promise
+function runasygc(gen) {
+  let iter = gen();
+  var result = iter.next();
+  function step(result) {
+    if (!result.done) {
+      result.value.then(data => {
+        result = iter.next(data);
+        step(result);
+      });
+    }
+  }
+  step(result);
+}
+// 异步genarator
+function* asygc() {
+  var value = yield timeout(1);
+  console.log(value);
+  value = yield timeout(2);
+  console.log(value);
+  value = yield timeout(3);
+  console.log(value);
+}
+
+function timeout(value) {
+  return Promise.resolve(value);
+}
+
+runsync(sync);
+runasygc(sync);
+```
+
+参考
+1. 深入理解ES6 第八章迭代器与生成器
+2. [ECMAScript 6 入门 Generator 函数的异步应用](http://es6.ruanyifeng.com/#docs/generator-async)

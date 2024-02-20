@@ -1,0 +1,556 @@
+---
+title: 建立自己的Redux
+date: 2017-07-16 08:53:10
+tags: Redux
+---
+原文:[Build Yourself a Redux](https://zapier.com/engineering/how-to-build-redux/)
+### 先来看看没有redux我们怎样建立应用
+```javascript
+const initialState = {
+  nextNoteId: 1,
+  notes: {}
+};
+window.state = initialState;
+const onAddNote = () => {
+  const id = window.state.nextNoteId;
+  window.state.notes[id] = {
+    id,
+    content: ""
+  };
+  window.state.nextNoteId++;
+  renderApp();
+};
+const NoteApp = ({ notes }) => (
+  <div>
+    <ul className="note-list">
+      {Object.keys(notes).map(id => (
+        <li className="note-list-item" key={id}>{id}</li>
+      ))}
+    </ul>
+    <button className="editor-button" onClick={onAddNote}>New Note</button>
+  </div>
+);
+const renderApp = () => {
+  ReactDOM.render(
+    <NoteApp notes={window.state.notes} />,
+    document.getElementById("root")
+  );
+};
+renderApp();
+```
+[jsfiddle](https://jsfiddle.net/justindeal/5j3can1z/1/?utm_source=website&utm_medium=embed&utm_campaign=5j3can1z)
+#### 上面这种方式带来的问题
+1. 任何地方都可以渲染组件,每次state改变都要调用renderApp，会导致UI的故障或者无响应
+2. 流程判断条件可能定义在自不同地方
+3. 无法测试代码，必须要记住整个应用的state才行
+4. 如果出bug了很难定位
+
+最后重要的一点是如果你想缩小你的app功能，你可能要改很多地方
+### 现在准备建立自己的Redux
+redux 涉及的三个概念
+1. reducer
+2. store(state)
+3. action
+
+#### 1. 先看看Reducer
+1. reducer函数接收一个state和action，返回一个新的state
+2. reducer是一个纯函数
+使用reducer
+```javascript
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case CREATE_NOTE: {
+      // DO NOT MUTATE STATE LIKE THIS!!!
+      state.notes[state.nextNoteId] = {
+        id: state.nextNoteId,
+        content: ""
+      };
+      state.nextNoteId++;
+      return state;
+    }
+    case UPDATE_NOTE: {
+      // DO NOT MUTATE STATE LIKE THIS!!!
+      state.notes[action.id].content = action.content;
+      return state;
+    }
+    default:
+      return state;
+  }
+};
+const state0 = reducer(undefined, {
+  type: CREATE_NOTE
+});
+// {
+//   nextNoteId: 2,
+//   notes: {
+//     1: {
+//       id: 1,
+//       content: ''
+//     }
+//   }
+// }
+const state1  = reducer(state0, {
+  type: UPDATE_NOTE,
+  id: 1,
+  content: 'Hello, world!'
+});
+// {
+//   nextNoteId: 2,
+//   notes: {
+//     1: {
+//       id: 1,
+//       content: 'Hello, world!'
+//     }
+//   }
+// }
+```
+上面就是redux的核心代码，一个函数接收一个state和action，返回一个新的state，至于为什么要叫reducer，因为他可以直接用于reduce function中
+```javascript
+const actions = [
+  {type: CREATE_NOTE},
+  {type: UPDATE_NOTE, id: 1, content: 'Hello, world!'}
+];
+const state = actions.reduce(reducer, undefined);
+// {
+//   nextNoteId: 2,
+//   notes: {
+//     1: {
+//       id: 1,
+//       content: 'Hello, world!'
+//     }
+//   }
+// }
+```
+
+#### 2. 再来看看store
+store 会保存我们的state并且还有一些设置和获取state的方法
+```javascript
+const validateAction = action => {
+  if (!action || typeof action !== 'object' || Array.isArray(action)) {
+    throw new Error('Action must be an object!');
+  }
+  if (typeof action.type === 'undefined') {
+    throw new Error('Action must have a type!');
+  }
+};
+
+const createStore = (reducer) => {
+  let state = undefined;
+  return {
+    dispatch: (action) => {
+      validateAction(action)
+      state = reducer(state, action);
+    },
+    getState: () => state
+  };
+};
+```
+现在我们使用一下store
+```javascript
+// Pass in the reducer we made earlier.
+const store = createStore(reducer);
+store.dispatch({
+  type: CREATE_NOTE
+});
+store.getState();
+// {
+//   nextNoteId: 2,
+//   notes: {
+//     1: {
+//       id: 1,
+//       content: ''
+//     }
+//   }
+// }
+```
+它仍然缺少一个重要的一点：一种订阅更改的方法。
+```javascript
+const createStore = reducer => {
+  let state;
+  const subscribers = [];
+  const store = {
+    dispatch: action => {
+      validateAction(action);
+      state = reducer(state, action);
+      subscribers.forEach(handler => handler());
+    },
+    getState: () => state,
+    subscribe: handler => {
+      subscribers.push(handler);
+      return () => {
+        // for unsubcribe
+        const index = subscribers.indexOf(handler);
+        if (index > 0) {
+          subscribers.splice(index, 1);
+        }
+      };
+    }
+  };
+  store.dispatch({type: '@@redux/INIT'});
+  return store;
+};
+```
+[jsfiddle demo](https://jsfiddle.net/justindeal/8cpu4ydj/3/?utm_source=website&utm_medium=embed&utm_campaign=8cpu4ydj)
+
+#### 3. 回想下你是怎样用redux的，大概是下面这样吧
+1. 首先定义一个pure component
+2. 然后为他再包装一个container
+我们自己定义的redux是将store传到container中，再将方法传递下去
+
+```javascript
+const validateAction = action => {
+  if (!action || typeof action !== 'object' || Array.isArray(action)) {
+    throw new Error('Action must be an object!');
+  }
+  if (typeof action.type === 'undefined') {
+    throw new Error('Action must have a type!');
+  }
+};
+
+const createStore = reducer => {
+  let state;
+  const subscribers = [];
+  const store = {
+    dispatch: action => {
+      validateAction(action);
+      state = reducer(state, action);
+      subscribers.forEach(handler => handler());
+    },
+    getState: () => state,
+    subscribe: handler => {
+      subscribers.push(handler);
+      return () => {
+        const index = subscribers.indexOf(handler);
+        if (index > 0) {
+          subscribers.splice(index, 1);
+        }
+      };
+    }
+  };
+  store.dispatch({type: '@@redux/INIT'});
+  return store;
+};
+//////////////////////
+// Our action types //
+//////////////////////
+const CREATE_NOTE = 'CREATE_NOTE';
+const UPDATE_NOTE = 'UPDATE_NOTE';
+const OPEN_NOTE = 'OPEN_NOTE';
+const CLOSE_NOTE = 'CLOSE_NOTE';
+/////////////////
+// Our reducer //
+/////////////////
+const initialState = {
+  nextNoteId: 1,
+  notes: {},
+  openNoteId: null
+};
+
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case CREATE_NOTE: {
+      const id = state.nextNoteId;
+      const newNote = {
+        id,
+        content: ''
+      };
+      return {
+        ...state,
+        nextNoteId: id + 1,
+        openNoteId: id,
+        notes: {
+          ...state.notes,
+          [id]: newNote
+        }
+      };
+    }
+    case UPDATE_NOTE: {
+      const {id, content} = action;
+      const editedNote = {
+        ...state.notes[id],
+        content
+      };
+      return {
+        ...state,
+        notes: {
+          ...state.notes,
+          [id]: editedNote
+        }
+      };
+    }
+    case OPEN_NOTE: {
+      return {
+        ...state,
+        openNoteId: action.id
+      };
+    }
+    case CLOSE_NOTE: {
+      return {
+        ...state,
+        openNoteId: null
+      };
+    }
+    default:
+      return state;
+  }
+};
+///////////////
+// Our store //
+///////////////
+const store = createStore(reducer);
+////////////////////
+// Our components //
+////////////////////
+
+const NoteEditor = ({note, onChangeNote, onCloseNote}) => (
+  <div>
+    <div>
+      <textarea
+        className="editor-content"
+        autoFocus
+        value={note.content}
+        onChange={event =>
+          onChangeNote(note.id, event.target.value)
+        }
+      />
+    </div>
+    <button className="editor-button" onClick={onCloseNote}>
+      Close
+    </button>
+  </div>
+);
+const NoteTitle = ({note}) => {
+  const title = note.content
+    .split('\n')[0].replace(/^\s+|\s+$/g, '');
+  if (title === '') {
+    return <i>Untitled</i>;
+  }
+  return <span>{title}</span>;
+};
+const NoteLink = ({note, onOpenNote}) => (
+  <li className="note-list-item">
+    <a href="#" onClick={() => onOpenNote(note.id)}>
+      <NoteTitle note={note}/>
+    </a>
+  </li>
+);
+const NoteList = ({notes, onOpenNote}) => (
+  <ul className="note-list">
+    {
+      Object.keys(notes).map(id =>
+        <NoteLink
+          key={id}
+          note={notes[id]}
+          onOpenNote={onOpenNote}
+        />
+      )
+    }
+  </ul>
+);
+const NoteApp = ({
+  notes, openNoteId, onAddNote, onChangeNote,
+  onOpenNote, onCloseNote
+}) => (
+  <div>
+    {
+      openNoteId ?
+        <NoteEditor
+          note={notes[openNoteId]}
+          onChangeNote={onChangeNote}
+          onCloseNote={onCloseNote}
+        /> :
+        <div>
+          <NoteList
+            notes={notes}
+            onOpenNote={onOpenNote}
+          />
+          {
+            <button
+              className="editor-button"
+              onClick={onAddNote}
+            >
+              New Note
+            </button>
+          }
+        </div>
+    }
+  </div>
+);
+class NoteAppContainer extends React.Component {
+  constructor(props) {
+    super();
+    this.state = props.store.getState();
+    this.onAddNote = this.onAddNote.bind(this);
+    this.onChangeNote = this.onChangeNote.bind(this);
+    this.onOpenNote = this.onOpenNote.bind(this);
+    this.onCloseNote = this.onCloseNote.bind(this);
+  }
+  componentWillMount() {
+    this.unsubscribe = this.props.store.subscribe(() =>
+      this.setState(this.props.store.getState())
+    );
+  }
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
+  onAddNote() {
+    this.props.store.dispatch({
+      type: CREATE_NOTE
+    });
+  }
+  onChangeNote(id, content) {
+    this.props.store.dispatch({
+      type: UPDATE_NOTE,
+      id,
+      content
+    });
+  }
+  onOpenNote(id) {
+    this.props.store.dispatch({
+      type: OPEN_NOTE,
+      id
+    });
+  }
+  onCloseNote() {
+    this.props.store.dispatch({
+      type: CLOSE_NOTE
+    });
+  }
+  render() {
+    return (
+      <NoteApp
+        {...this.state}
+        onAddNote={this.onAddNote}
+        onChangeNote={this.onChangeNote}
+        onOpenNote={this.onOpenNote}
+        onCloseNote={this.onCloseNote}
+      />
+    );
+  }
+}
+
+ReactDOM.render(
+  <NoteAppContainer store={store}/>,
+  document.getElementById('root')
+);
+```
+1. 将store与component连接起来
+2. container里面做了很多重复的工作（subscribe,unsubscribe,function binding)
+3. 每次都会用到全局的store都要传递
+
+#### 现在我们试试实现一个redux的provider
+Provider组件使用React的上下文功能将storeprop转换为context属性
+
+```javascript
+class Provider extends React.Component {
+  getChildContext() {
+    return {
+      store: this.props.store
+    };
+  }
+  render() {
+    return this.props.children;
+  }
+}
+
+Provider.childContextTypes = {
+  store: PropTypes.object
+};
+```
+有了store，下面用connect函数我们把context上面的props传递到组件中
+```javascript
+const connect = (
+  mapStateToProps = () => ({}),
+  mapDispatchToProps = () => ({})
+) => Component => {
+  class Connected extends React.Component {
+    onStoreOrPropsChange(props) {
+      const {store} = this.context;
+      const state = store.getState();
+      const stateProps = mapStateToProps(state, props);
+      const dispatchProps = mapDispatchToProps(store.dispatch, props);
+      this.setState({
+        ...stateProps,
+        ...dispatchProps
+      });
+    }
+    componentWillMount() {
+      const {store} = this.context;
+      this.onStoreOrPropsChange(this.props);
+      this.unsubscribe = store.subscribe(() => this.onStoreOrPropsChange(this.props));
+    }
+    componentWillReceiveProps(nextProps) {
+      this.onStoreOrPropsChange(nextProps);
+    }
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+    render() {
+      return <Component {...this.props} {...this.state}/>;
+    }
+  }
+
+  Connected.contextTypes = {
+    store: PropTypes.object
+  };
+
+  return Connected;
+}
+```
+1. connect函数接收两个参数mapStateToProps，mapDispatchToProps，返回一个新的函数
+2. 新的函数使用带包装的子组件作为参数，将子组件需要的state以及dispatch，作为当前组件的state
+3. 将当前组件的state作为props传递给需要包装的子组件
+
+[fiddle demo](https://jsfiddle.net/justindeal/o27j5zs1/1/?utm_source=website&utm_medium=embed&utm_campaign=o27j5zs1)
+
+#### 中间件
+目前我们的redux还不能应付异步action的问题，利用中间件可以解决这个问题，加载单个中间件的代码如下所示
+```javascript
+const createStore = (reducer, middleware) => {
+  let state;
+  const subscribers = [];
+  const coreDispatch = action => {
+    validateAction(action);
+    state = reducer(state, action);
+    subscribers.forEach(handler => handler());
+  };
+  const getState = () => state;
+  const store = {
+    dispatch: coreDispatch,
+    getState,
+    subscribe: handler => {
+      subscribers.push(handler);
+      return () => {
+        const index = subscribers.indexOf(handler)
+        if (index > 0) {
+          subscribers.splice(index, 1);
+        }
+      };
+    }
+  };
+// 判断时候有中间件
+  if (middleware) {
+    const dispatch = action => store.dispatch(action);
+// 实际执行顺序是当store.dispatch 被调用的时候先执行中间件里面的内容，执行之后再dispatch action
+    store.dispatch = middleware({
+      dispatch,
+      getState
+    })(coreDispatch);
+  }
+  coreDispatch({type: '@@redux/INIT'});
+  return store;
+}
+
+```
+thunkMiddleware
+```javascript
+const thunkMiddleware = ({dispatch, getState}) => next => action => {
+  if (typeof action === 'function') {
+    return action({dispatch, getState});
+  }
+  return next(action);
+};
+```
+
+ps:上面关于中间件代码不是很好理解可以参考
+[理解 redux 中间件](https://zhuanlan.zhihu.com/p/21391101)

@@ -1,0 +1,31 @@
+---
+title: bundle or bundless
+date: 2021-07-14 13:51:01
+tags: snowpack webpack
+---
+
+###  应用构建方式
+#### 1. bundle （webpack）
+
+1. 解析依赖资源并将依赖转成js组合成一个单一文件
+2. 开发与生产打包统一的流程，不易出错
+3. 支持各种类型文件导入
+4. 每次更改都重新构建整个应用
+
+#### 2 bundless（snowpack） 利用现代浏览器支持的JavaScript module构建
+
+1. 启动快，浏览器处理模块依赖，文件修改会单文件构建，不用整个应用重新构建
+2. 可以从CDN导入
+3. node_module不参与构建过程（依赖可单独引入）
+4. 生产可与webpack配合打包（出问题难以重现）
+
+snowpack解决的问题
+
+1. HMR
+2. css ,image import
+>1. read css content,创建style标签将css插入，最后擦入文档
+>2. 将image转成base64，或者文件地址赋值给img标签
+3. ts,jsx转换能力
+4. 模块路径重写 (esm不支持裸模块导入)
+>将 import React from "react"
+>转换成 import React from "./web_module/react.js"

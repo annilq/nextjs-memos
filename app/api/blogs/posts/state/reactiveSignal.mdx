@@ -1,0 +1,49 @@
+---
+title: Writing Your Own Reactive Signal Library 
+date: 2023-03-29 16:44:01
+tags: Reactive Signal
+---
+
+```javascript
+let currentListener = undefined;
+
+function createSignal(initialValue) {
+	let value = initialValue;
+
+	const subscribers = new Set();
+
+	const read = () => {
+		if (currentListener !== undefined) {
+			subscribers.add(currentListener);
+		}
+		return value;
+	};
+	const write = (newValue) => {
+		value = newValue;
+		subscribers.forEach((fn) => fn());
+	};
+
+	return [read, write];
+}
+
+function createEffect(callback) {
+	currentListener = callback;
+	callback();
+	currentListener = undefined;
+}
+
+const [count, setCount] = createSignal(0);
+
+const button = document.createElement('button');
+createEffect(() => {
+	button.innerText = count();
+});
+button.addEventListener('click', () => {
+	setCount(count() + 1);
+});
+
+document.body.append(button);
+```
+
+参考链接
+[Writing Your Own Reactive Signal Library](https://www.lksh.dev/blog/writing-your-own-reactive-signal-library/)

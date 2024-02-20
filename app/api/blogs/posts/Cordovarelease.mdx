@@ -1,0 +1,27 @@
+---
+title: 用cordova命令行给应用程序签名
+date: 2016-01-07 21:44:01
+tags:
+---
+最近再用cordova做hybrid项目，之前一直用debug模式build，由于后来消息推送用到了极光推送，debug模式打出的包会有极光推送的提示（发布打包不会出现），体验十分不好，所以决定打一个release包，生成的签名是参考[这个做的](http://lzw.me/a/cordova-3-5-android-apk-signed.html)
+首先生成
+```
+keytool -genkey -v -keystore annilq.keystore -alias annilq -keyalg RSA -validity 3650
+```
+按照命令行提示
+下面是我生成签名的截图
+![](/images/annilq.keystore.png)
+以上都没有问题，但是按照上面的博客打包的时候一直不能打sign包，后来看了[cordova文档](https://cordova.apache.org/docs/en/dev/guide/platforms/android/tools.html)发现应该按照以下方式修改
+新建 name.properties 文件,命名参考
+>cdvDebugSigningPropertiesFile (default: debug-signing.properties)//如果是开发包
+cdvReleaseSigningPropertiesFile (default: release-signing.properties)//如果是发布包
+
+内容如下
+```
+key.store=annilq.keystore
+key.alias=annilq
+key.store.password=123456liu
+key.alias.password=123456liu
+```
+文件放在platforms/android/目录下
+这时候再执行<code>cordova build android -release</code>即可以成功

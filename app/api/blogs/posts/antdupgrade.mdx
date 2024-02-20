@@ -1,0 +1,12 @@
+---
+title: ant design升级到 5.0
+date: 2022-12-02 15:32:01
+tags: antd升级
+---
+#### 导入 antd 4.x css modules 中用到的less 变量
+
+### 参考
+1. [less迁移](https://ant.design/docs/react/migration-v5-cn#less-%E8%BF%81%E7%A7%BB)
+2. [umi less loader 配置](https://umijs.org/docs/api/config#lessloader)
+
+

@@ -1,0 +1,223 @@
+---
+title: RxJS 小记
+date: 2017-11-09 19:30:01
+tags: RxJS observable
+---
+### 简单来说 Observable是一个接收observer并且返回一个可用于取消订阅方法的方法
+下面是一个比较基础的实现
+```javascript
+function myObservable(observer) {
+    const datasource = new DataSource();
+    datasource.ondata = (e) => observer.next(e);
+    datasource.onerror = (err) => observer.error(err);
+    datasource.oncomplete = () => observer.complete();
+    return () => {
+        datasource.destroy();
+    };
+}
+```
+一个健全一点的观察者应该保证以下几点
+1. `next`，`error`和`complete`实际上都是可选的。你不必处理每个值，或错误或完成。
+2. 你不能在`complete`和`error`之后调用next
+3. 调用`complete`和`error`后需要调用取消订阅逻辑。
+4. 只有执行订阅方法,才会接收到数据源的值
+5. 如果你的`next`,`complete`或`error`处理程序抛出一个异常，你想调用你的取消订阅逻辑。
+
+### 实现一个类RxJS需要实现以下几部分
+1. 数据源
+2. observer
+3. Observable生成器
+4. observable
+5. operator
+
+#### 数据源
+- 数据源可以产生数据给observer
+
+#### observer
+- 包含  `next`, `error` and `complete` 属性的对象，用来处理数据源的数据
+
+#### Observable 生成器函数
+- 接收一个observer对象(该observer由observable传入并且经过包装后得到)，并且将observer和数据源关联
+
+#### observable
+- 由Observable生成器函数生成，并带有一个接收observer对象的subscribe方法
+
+#### operator
+- 操作符是一个接收observable并且返回新observable的函数
+- 操作符在做什么：当你订阅它的返回的observable时，它创建一个`mapObserver`来完成工作并将`observer`和`mapObserver`链接在一起。建立operator实际上只是创建一个用于在订阅时连接观察者的模板
+
+## Observable执行顺序
+1. Observable生成器函数生成一个observable
+2. observable调用subscribe时传入一个observer，并返回一个订阅Subscription对象
+3. 将observer与数据源关联
+4. 数据源发出数据时调用observer相关方法
+5. 可以调用订阅对象Subscription的unsubscribe方法取消订阅
+
+```javascript
+//  -------------------------------DataSource----------------------------
+class EventDataSource {
+  constructor() {
+    let i = 1;
+    this._id = setInterval(() => this.emit(i++), 200);
+  }
+  emit(n) {
+    const limit = 3;
+    if (this.ondata) {
+      this.ondata(n);
+    }
+    if (n === limit) {
+      if (this.oncomplete) {
+        this.oncomplete();
+      }
+      this.destroy();
+    }
+  }
+  destroy() {
+    clearInterval(this._id);
+  }
+}
+
+const ArraySource=["hello", "annilq"];
+
+const PromiseSource=Promise.resolve("promise");
+//  -------------------------------DataSource end----------------------------
+//  -------------------------------Observable creator----------------------------
+class SafeObserver {
+  constructor(destination) {
+    this.destination = destination;
+  }
+  next(value) {
+    if (!this.isUnsubscribed && this.destination.next) {
+      try {
+        this.destination.next(value);
+      } catch (err) {
+        this.unsubscribe();
+        throw err;
+      }
+    }
+  }
+  error(err) {
+    if (!this.isUnsubscribed && this.destination.error) {
+      try {
+        this.destination.error(err);
+      } catch (e2) {
+        this.unsubscribe();
+        throw e2;
+      }
+      this.unsubscribe();
+    }
+  }
+  complete() {
+    if (!this.isUnsubscribed && this.destination.complete) {
+      try {
+        this.destination.complete();
+      } catch (err) {
+        this.unsubscribe();
+        throw err;
+      }
+      this.unsubscribe();
+    }
+  }
+  unsubscribe() {
+    this.isUnsubscribed = true;
+    if (this.unsub) {
+      this.unsub();
+    }
+  }
+}
+class Observable {
+  constructor(_subscribe) {
+    this._subscribe = _subscribe;
+  }
+  subscribe(observer) {
+    const safeObserver = new SafeObserver(observer);
+    safeObserver.unsub = this._subscribe(safeObserver);
+    return safeObserver.unsubscribe.bind(safeObserver);
+  }
+}
+Observable.from = function(arr) {
+  return new Observable(observer => {
+    arr.forEach(data => observer.next(data));
+  });
+};
+Observable.fromEvent = function(EventDataSource) {
+  return new Observable(observer => {
+    const datasource = new EventDataSource();
+    datasource.ondata = e => observer.next(e);
+    datasource.onerror = err => observer.error(err);
+    datasource.oncomplete = () => observer.complete();
+    return () => datasource.destroy();
+  });
+};
+Observable.fromPromise = function(promise) {
+  return new Observable(observer => {
+    promise.then(data => observer.next(data));
+  });
+};
+
+// ----------------------------------observable end----------------------------------
+// ----------------------------------Operators----------------------------------
+// “运算符”返回个新的可观察对象，当您订阅它时,它将订阅该可观察对象
+Observable.prototype.map = function(project) {
+  return new Observable(observer => {
+    const mapObserver = {
+      next: x => observer.next(project(x)),
+      error: err => observer.error(err),
+      complete: () => observer.complete()
+    };
+    return this.subscribe(mapObserver);
+  });
+};
+// ----------------------------------Operators end-------------------------
+
+// ----------------------------------usage----------------------------------
+const myObservable = new Observable(observer => {
+  const datasource = new EventDataSource();
+  datasource.ondata = e => observer.next(e);
+  datasource.onerror = err => observer.error(err);
+  datasource.oncomplete = () => observer.complete();
+  return () => datasource.destroy();
+});
+const myObservable1 = Observable.fromEvent(EventDataSource);
+const myObservable2 = Observable.from(ArraySource);
+const myObservable3 = Observable.fromPromise(PromiseSource);
+myObservable.map(x => x + x).subscribe({
+  next(x) {
+    console.log(x);
+  }
+});
+myObservable1.subscribe({
+  next(x) {
+    console.log(x);
+  }
+});
+myObservable2.subscribe({
+  next(x) {
+    console.log(x);
+  }
+});
+myObservable3.subscribe({
+  next(x) {
+    console.log(x);
+  }
+});
+```
+
+#### 高阶Observable ,通常高阶Observable只有一个上游Observable对象，这个Observable对象产生的数据也是Observable对象
+1. concatAll 
+2. mergeAll
+3. concatMap = map+concatAll
+4. mergeMap = map+mergeAll
+5. switchMap = map+switch
+
+### RxJS实现中涉及的几个概念：
+1. Observable (可观察对象): 表示一个概念，这个概念是一个可调用的未来值或事件的集合。
+2. Observer (观察者): 一个回调函数的集合，它知道如何去监听由 Observable 提供的值。
+3. Subscription (订阅): 表示 Observable 的执行，主要用于取消 Observable 的执行。
+4. Operators (操作符): 采用函数式编程风格的纯函数 (pure function)，使用像 map、filter、concat、flatMap 等这样的操作符来处理集合。
+5. Subject (主体): 相当于 EventEmitter，并且是将值或事件多路推送给多个 Observer 的唯一方式。
+6. Schedulers (调度器): 用来控制并发并且是中央集权的调度员，允许我们在发生计算时进行协调，例如 setTimeout 或 requestAnimationFrame 或其他。
+
+### 参考
+- [Learning Observable By Building Observable – Ben Lesh – Medium](https://medium.com/@benlesh/learning-observable-by-building-observable-d5da57405d87)
+- [RxJS入门](http://cn.rx.js.org/manual/overview.html)

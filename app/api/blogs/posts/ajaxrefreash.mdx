@@ -1,0 +1,69 @@
+---
+title: token失效,重新请求
+date: 2022-12-14 09:27:01
+tags: token失效
+---
+### 主要是在responseInterceptors中返回新的请求response，而不是data
+```javascript
+
+export const request: RequestConfig = {
+  method: "POST",
+  errorConfig: {
+    errorHandler: (error) => {
+      console.log(error);
+      Toast.show(error.message)
+    },
+    errorThrower: () => { }
+  },
+  requestInterceptors: [
+    async (config) => {
+      const { headers } = config
+      // console.log(config);
+      // console.log(token);
+      config.originParams = { ...config.data }
+      const http_header = localStorage.getItem(APP_HEADER);
+      const token = localStorage.getItem("token")
+
+      const newConfig = {
+        ...config,
+        headers: {
+          ...headers,
+          ...token && {
+            token
+          },
+          ...http_header && {
+            ...(JSON.parse(http_header))
+          }
+        }
+      }
+      return newConfig;
+    }
+  ],
+  responseInterceptors: [
+    async (response) => {
+      console.log(response);
+      const { data } = response;
+      if (data?.code === 0) {
+        return response;
+      } else if (data?.code === -1) {
+        const token = await getToken(true)
+
+        const { config } = response
+        // 这里要返回新的response
+        const data = await originRequest(config.url, {
+          data: { ...config.originParams },
+        })
+        response.data = data
+        return response
+      } else {
+        if (data?.info) {
+          Toast.show(data?.info)
+          console.error(data?.info)
+        }
+        return response;
+      }
+    }
+  ],
+};
+
+```

@@ -1,0 +1,129 @@
+---
+title: 简单的promise实现
+date: 2017-10-11 21:40:01
+tags: ES6 promise
+---
+
+```javascript
+class PromiseSimple {
+  constructor(executionFunction) {
+    this.promiseChain = [];
+    this.handleError = () => {};
+    this.onResolve = this.onResolve.bind(this);
+    this.onReject = this.onReject.bind(this);
+    executionFunction(this.onResolve, this.onReject);
+  }
+  then(onResolve) {
+    this.promiseChain.push(onResolve);
+    return this;
+  }
+  catch(handleError) {
+    this.handleError = handleError;
+    return this;
+  }
+  onResolve(value) {
+    let storedValue = value;
+    try {
+      this.promiseChain.forEach(nextFunction => {
+        storedValue = nextFunction(storedValue);
+      });
+    } catch (error) {
+      this.promiseChain = [];
+      this.onReject(error);
+    }
+  }
+  onReject(error) {
+    this.handleError(error);
+  }
+}
+
+PromiseSimple.resolve = function (value) {
+    return new PromiseSimple((resolve, reject) => {
+      return resolve(value)
+    });
+}
+
+PromiseSimple.reject = function (values) {
+    return new PromiseSimple((resolve, reject) => {
+      return reject(value)
+    });
+}
+
+PromiseSimple.all = function promiseAllIterative(values) {
+    return new PromiseSimple((resolve, reject) => {
+       let results = [];
+       let completed = 0;
+       
+       values.forEach((value, index) => {
+            PromiseSimple.resolve(value).then(result => {
+                results[index] = result;
+                completed += 1;
+                
+                if (completed == values.length) {
+                    resolve(results);
+                }
+            }).catch(err => reject(err));
+       });
+    });
+}
+ function fakeApiBackend() {
+    const user = {
+      username: "treyhuffine",
+      favoriteNumber: 42,
+      profile: "https://gitconnected.com/treyhuffine"
+    }; // Introduce a randomizer to simulate the // the probability of encountering an error
+    if (Math.random() > 0.05) {
+      return { data: user, statusCode: 200 };
+    } else {
+      const error = {
+        statusCode: 404,
+        message: "Could not find user",
+        error: "Not Found"
+      };
+      return error;
+    }
+  };
+const makeApiCall = () => {
+  return new PromiseSimple((resolve, reject) => {
+    setTimeout(
+      () => {
+        const apiResponse = this.fakeApiBackend();
+        if (apiResponse.statusCode >= 400) {
+          reject(apiResponse);
+        } else {
+          resolve(apiResponse.data);
+        }
+      },
+      5000
+    );
+  });
+};
+makeApiCall()
+  .then(user => {
+    console.log("In the first.then()");
+    return user;
+  })
+  .then(user => {
+    console.log(
+      `User ${user.username}'s favorite number is ${user.favoriteNumber}`
+    );
+    return user;
+  })
+  .then(user => {
+    console.log("The previous.then() told you the favoriteNumber");
+    return user.profile;
+  })
+  .then(profile => {
+    console.log(`The profile URL is ${profile}`);
+  })
+  .then(() => {
+    console.log("This is the last then()");
+  })
+  .catch(error => {
+    console.log(error.message);
+  });
+
+```
+### 参考
+[Learn JavaScript Promises by Building a Promise from Scratch](https://medium.com/gitconnected/understand-javascript-promises-by-building-a-promise-from-scratch-84c0fd855720)
+[implementing-promise-all](https://medium.com/@copperwall/implementing-promise-all-575a07db509a)

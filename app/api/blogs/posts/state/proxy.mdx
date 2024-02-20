@@ -1,0 +1,119 @@
+---
+title: proxy应用
+date: 2022-10-18 15:12:01
+tags: proxy
+---
+
+### proxy 由于可以劫持属性，所以特别适合做一些响应式的需求
+#### 1. 基于proxy的mobx简要实现
+```javascript
+const relationMap = {}
+// track current component which refer
+let currentlyRenderingComponent
+
+const handler = {
+  // getter用来收集依赖
+  get: (target, key) => {
+    if (typeof currentlyRenderingComponent === "undefined") {
+      return target[key]
+    }
+
+    if (!relationMap[key]) {
+      relationMap[key] = [currentlyRenderingComponent]
+    }
+
+    const hasComponent = relationMap[key].find(com => com.ID === currentlyRenderingComponent.ID);
+    if (!hasComponent) {
+      relationMap[key].push(currentlyRenderingComponent)
+    }
+    return target[key]
+  },
+  set: (target, key, value) => {
+    // 用来更新依赖
+    target[key] = value
+    relationMap[key]?.forEach(com => com.forceUpdate())
+    return true
+  },
+}
+
+export function store(object) {
+  return new Proxy(object, handler);
+}
+
+export function observer(MyComponent) {
+  // observer用来联结getter 与 setter
+  // 比如 react 中的依赖主要是render中
+  // 先执行继承组件的render收集依赖
+  // 再在setter的时候遍历依赖的map循环执行更新
+  return class Observer extends MyComponent {
+    ID = `${Math.floor(Math.random() * 10e9)}`
+    render() {
+      currentlyRenderingComponent = this;
+      // collect refer 收集引用
+      const renderValue = super.render()
+      currentlyRenderingComponent = undefined
+      return renderValue
+    }
+  }
+}
+
+const storeIns = store({ a: 10 })
+
+class TextComponent {
+  forceUpdate() {
+    this.render()
+  }
+  render() {
+    console.log(`render ${storeIns.a}`);
+  }
+}
+
+const com = observer(TextComponent)
+const cominstance = new com()
+cominstance.render()
+storeIns.a = 20
+storeIns.a = 10
+storeIns.a = 30
+
+```
+
+#### 2. 基于proxy实现一个生成dom tree方法
+```javascript
+
+const handler = {
+  get(target, key) {
+    return function (attr, ...children) {
+      const el = document.createElement(key);
+      for (let prop of Object.keys(attrs)) {
+        el.setAttribute(property, attr[prop])
+      }
+      children.forEach(child=>{
+        if (typeof child === 'string') {
+          child = document.createTextNode(child);
+        }
+        el.appendChild(child)
+      })
+      return el
+    }
+  }
+}
+
+const dom = new Proxy({}, handler)
+
+const el = dom.div(
+  {},
+  'Hello, my name is ',
+  dom.a({ href: '//example.com' }, 'Mark'),
+  '. I like:',
+  dom.ul({},
+    dom.li({}, 'The web'),
+    dom.li({}, 'Food'),
+    dom.li({}, '…actually that\'s it')
+  )
+);
+
+console.log(el);
+```
+### 参考
+1. [make-your-own-mobx](https://czaplinski.io/blog/make-your-own-mobx/ )
+2. [ECMAScript 6 入门](https://es6.ruanyifeng.com/#docs/proxy)

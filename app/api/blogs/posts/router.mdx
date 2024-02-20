@@ -1,0 +1,283 @@
+---
+title: 100行实现JavaScript路由器
+date: 2018-03-16 11:44:01
+tags: react router
+---
+原文链接
+[A modern JavaScript router in 100 lines](http://krasimirtsonev.com/blog/article/A-modern-JavaScript-router-in-100-lines-history-api-pushState-hash-url)
+[Build your own React Router v4](https://tylermcginnis.com/build-your-own-react-router-v4/)
+
+### 基本概念
+1. 配置路由
+2. 添加路由
+3. 监听路由
+    1. 定时监听
+    2. hashChange
+    3. popstate
+
+### 一个基本路由实现的代码
+```javascript
+var Router = {
+    routes: [],
+    mode: null,
+    root: '/',
+    config: function(options) {
+        this.mode = options && options.mode && options.mode == 'history' 
+                    && !!(history.pushState) ? 'history' : 'hash';
+        this.root = options && options.root ? '/' + this.clearSlashes(options.root) + '/' : '/';
+        return this;
+    },
+    getFragment: function() {
+        var fragment = '';
+        if(this.mode === 'history') {
+            fragment = this.clearSlashes(decodeURI(location.pathname + location.search));
+            fragment = fragment.replace(/\?(.*)$/, '');
+            fragment = this.root != '/' ? fragment.replace(this.root, '') : fragment;
+        } else {
+            var match = window.location.href.match(/#(.*)$/);
+            fragment = match ? match[1] : '';
+        }
+        return this.clearSlashes(fragment);
+    },
+    clearSlashes: function(path) {
+        return path.toString().replace(/\/$/, '').replace(/^\//, '');
+    },
+    add: function(re, handler) {
+        if(typeof re == 'function') {
+            handler = re;
+            re = '';
+        }
+        this.routes.push({ re: re, handler: handler});
+        return this;
+    },
+    remove: function(param) {
+        for(var i=0, r; i<this.routes.length, r = this.routes[i]; i++) {
+            if(r.handler === param || r.re.toString() === param.toString()) {
+                this.routes.splice(i, 1); 
+                return this;
+            }
+        }
+        return this;
+    },
+    flush: function() {
+        this.routes = [];
+        this.mode = null;
+        this.root = '/';
+        return this;
+    },
+    check: function(f) {
+        var fragment = f || this.getFragment();
+        for(var i=0; i<this.routes.length; i++) {
+            var match = fragment.match(this.routes[i].re);
+            if(match) {
+                match.shift();
+                this.routes[i].handler.apply({}, match);
+                return this;
+            }           
+        }
+        return this;
+    },
+    listen: function() {
+        var self = this;
+        var current = self.getFragment();
+        var fn = function() {
+            if (current !== self.getFragment()) {
+                current = self.getFragment();
+                self.check(current);
+            }
+        }
+        if (history.pushState) {
+            window.onpopstate = function(event) {
+                console.log('state: ' + JSON.stringify(event.state));
+                fn()
+            }
+
+        } else {
+            clearInterval(this.interval);
+            this.interval = setInterval(fn, 50);
+
+        }
+        return this;
+    },
+    navigate: function(path) {
+        path = path ? path : '';
+        if(this.mode === 'history') {
+            history.pushState(null, null, this.root + this.clearSlashes(path));
+        } else {
+            window.location.href = window.location.href.replace(/#(.*)$/, '') + '#' + path;
+        }
+        return this;
+    }
+}
+
+// configuration
+Router.config({ mode: 'history'});
+
+// returning the user to the initial state
+Router.navigate();
+
+// adding routes
+Router
+.add(/about/, function() {
+    console.log('about');
+})
+.add(/products\/(.*)\/edit\/(.*)/, function() {
+    console.log('products', arguments);
+})
+.add(function() {
+    console.log('default');
+})
+.check('/products/12/edit/22').listen();
+
+// forwarding
+Router.navigate('/about');
+```
+
+### react-router中的路由用法
+
+react-router中路由提供两个基础的组件<Link>,<Route>,<Redirect>
+1.  <Route>,项目初始化的时候<Route>组件时候会有两步操作
+    1. 会绑定popstate事件，如果有事件发生立即刷新组件
+    2. 将组件实例加入到观察列表instances当中，方便有history state变化的时候将列表中实例重新渲染
+
+2. <Link>组件被点击的时候，调用 history.pushState({}, null, path)更新history,并重新渲染观察列表instances里面的route组件，显示对应的组件
+2. <Redirect >组件有两个属性to,path,用来跳转
+>调用history.pushState()或者history.replaceState()不会触发popstate事件. popstate事件只会在浏览器某些行为下触发, 比如点击后退、前进按钮(或者在JavaScript中调用history.back()、history.forward()、history.go()方法)
+
+3. 
+```javascript
+import React, { PropTypes, Component } from 'react'
+
+let instances = []
+
+const register = (comp) => instances.push(comp)
+const unregister = (comp) => instances.splice(instances.indexOf(comp), 1)
+
+const historyPush = (path) => {
+  history.pushState({}, null, path)
+  instances.forEach(instance => instance.forceUpdate())
+}
+
+const historyReplace = (path) => {
+  history.replaceState({}, null, path)
+  instances.forEach(instance => instance.forceUpdate())
+}
+
+const matchPath = (pathname, options) => {
+  const { exact = false, path } = options
+
+  if (!path) {
+    return {
+      path: null,
+      url: pathname,
+      isExact: true
+    }
+  }
+
+  const match = new RegExp(`^${path}`).exec(pathname)
+
+  if (!match)
+    return null
+
+  const url = match[0]
+  const isExact = pathname === url
+
+  if (exact && !isExact)
+    return null
+
+  return {
+    path,
+    url,
+    isExact,
+  }
+}
+
+class Route extends Component {
+  static propTypes: {
+    path: PropTypes.string,
+    exact: PropTypes.bool,
+    component: PropTypes.func,
+    render: PropTypes.func,
+  }
+
+  componentWillMount() {
+    addEventListener("popstate", this.handlePop)
+    register(this)
+  }
+
+  componentWillUnmount() {
+    unregister(this)
+    removeEventListener("popstate", this.handlePop)
+  }
+
+  handlePop = () => {
+    this.forceUpdate()
+  }
+
+  render() {
+    const {
+      path,
+      exact,
+      component,
+      render,
+    } = this.props
+
+    const match = matchPath(location.pathname, { path, exact })
+
+    if (!match)
+      return null
+
+    if (component)
+      return React.createElement(component, { match })
+
+    if (render)
+      return render({ match })
+
+    return null
+  }
+}
+
+class Link extends Component {
+  static propTypes = {
+    to: PropTypes.string.isRequired,
+    replace: PropTypes.bool,
+  }
+  handleClick = (event) => {
+    const { replace, to } = this.props
+
+    event.preventDefault()
+    replace ? historyReplace(to) : historyPush(to)
+  }
+
+  render() {
+    const { to, children} = this.props
+
+    return (
+      <a href={to} onClick={this.handleClick}>
+        {children}
+      </a>
+    )
+  }
+}
+
+class Redirect extends Component {
+  static defaultProps = {
+    push: false
+  }
+
+  static propTypes = {
+    to: PropTypes.string.isRequired,
+    push: PropTypes.bool.isRequired,
+  }
+
+  componentDidMount() {
+    const { to, push } = this.props
+
+    push ? historyPush(to) : historyReplace(to)
+  }
+
+  render() {
+    return null
+  }
+}
+```

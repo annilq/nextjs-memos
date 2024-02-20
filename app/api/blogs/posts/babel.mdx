@@ -1,0 +1,21 @@
+---
+title: babeljs 小记 
+date: 2022-06-29 14:50:01
+tags: babeljs
+---
+## babel presets
+```
+@babel/preset-env for compiling ES2015+ syntax
+@babel/preset-typescript for TypeScript
+@babel/preset-react for React
+@babel/preset-flow for Flow
+```
+## 各个 Integration Packages 说明
+1. @babel/cli  可以通过命令行编辑程序
+2. @babel/polyfill 它会仿效一个完整的 ES2015+ 环境，并意图运行于一个应用中而不是一个库/工具。这个 polyfill 会在使用 babel-node 时自动加载，需要在入口处引入
+3. @babel/plugin-transform-runtime  的作用是将 helper 和 polyfill 都改为从一个统一的地方引入，减少代码的重复定义，并且引入的对象和全局变量是完全隔离的
+4. @babel-register 实际上为require加了一个钩子（hook），之后所有被 node 引用的 .es6、.es、.jsx 以及 .js 文件都会先被 Babel 转码
+5. @babel/standalone 在浏览器中直接使用
+
+### 参考链接
+[babel](https://babeljs.io/docs/en/)

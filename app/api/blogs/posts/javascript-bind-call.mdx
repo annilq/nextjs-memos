@@ -1,0 +1,46 @@
+---
+title: 用javascript 实现内部call,bind方法
+date: 2021-05-31 14:31:01
+tags: call,bind
+---
+
+#### call apply,bind 方法实现
+大概就是这样子的
+```javascript
+function sayHello(helloworld="hi"){
+console.log(`${helloworld},${this.name}`)
+}
+const obj={
+  name:"annilq"
+}
+sayHello.call(obj);
+
+// 自己定义方法 
+// Function.prototype.myCall=function(callObj){
+//   const callObj.fn=this;
+//   callObj.fn()
+// }
+
+Function.prototype.myCall=function(callObj){
+  const callObj.fn=this;
+  // _this_与callObj一样
+  const [_this_,...args]=Array.from(argments)
+  callObj.fn(args);
+}
+
+Function.prototype.myApply=function(applyObj,arrArg){
+  const callObj.fn=this;
+  callObj.fn(...arrArg);
+}
+
+Function.prototype.myBind=function(applyObj,arrArg){
+  const callObj.fn=this;
+  return function (newArgs){
+    callObj.fn(arrArg.concat(newArgs));
+  }
+}
+
+// 无参数调用方式
+sayHello.myCall(obj);
+
+```

@@ -1,0 +1,35 @@
+---
+title:  android 广播小记
+date: 2023-01-14 18:18:40
+tags: android kotlin
+---
+
+### Broadcast
+### 广播的注册方式分为动态注册和静态注册
+#### 动态注册 
+1. 通过构建一个IntentFilter来添加希望接受的广播类型
+2. 设置广播接收消息处理器，该处理器需继承BroadcastReceiver并实现onReceive方法处理消息
+3. 通过registerReceiver将NetworkChangeReceiver的对象和IntentFilter的对象进行注册，以便接收传来的广播信号
+4. 用unregisterReceiver方法取消注册
+#### 静态注册
+1. 在AndroidManifest.XML添加<receiver>标签来注册广播，通过设置同样也使用了intent-filter和action，表明自身设置的广播信号
+
+动态注册的广播接收器可以自由地控制注册与注销，但需要在程序启动之后
+静态注册可以在程序不启动的时候接收到广播
+需要注意大部分系统广播可能都需要申请权限
+
+### 广播类型分为系统广播和自定义广播
+1. 系统广播是由系统发出来的，并且都是标准广播
+2. 自定义广播是由用户程序用sendBroadcast()发出去的，广播类型也是通过Intent构建的
+
+###  广播可以分为标准广播和有序广播
+1. 发送标准广播 sendBroadcast() 
+2. 发送有序广播 sendOrderedBroadcast()
+有序广播通过设置android:priority优先级来确定接受顺序，再通过abortBroadcast()方法来阻止继续传递
+
+### 系统全局广播与本地广播
+1. 全局广播：通过 sendBroadcast与sendOrderedBroadcast()发出的广播都是全局广播能被所有应用接收
+2. 本地广播：LocalBroadcastManager的getInstance()方法得到了它的一个实例，最后通过这个LocalBroadcastManager实例的sendBroadcast()发送广播，通过LocalBroadcastManager的registerReceiver方法注册广播接收器，本地广播都是通过动态注册实现的
+
+### 参考
+1. [Android-广播的简明介绍](https://zhuanlan.zhihu.com/p/78665063)

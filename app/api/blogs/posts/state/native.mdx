@@ -1,0 +1,97 @@
+---
+title: js与原生交互
+date: 2017-03-27 20:50:01
+tags: js与原生交互
+---
+公司原来的项目是用cordova命令行创建的，页面UI全是web技术画的，目前项目优化将首页以及列表页面用原生重写了，也弃用了之前的cordova架构，但是由于之前页面也需要到与原生交互，我就自己简单写了个方法用来与原生交互
+```javascript
+var NativeUtil = {
+  _Callback: {},
+  /**
+   * [调用原生方法]
+   * @param  {[type]}   name     [原生方法名]
+   * @param  {Function} callback [成功之后的回调]
+   * @param  {[type]}   param    [原生插件需要的参数]
+   * @return [type]              插件返回值
+   */
+  use: function(name, callback, param) {
+    var args = [].slice.call(arguments);
+    console.log(args);
+    if (this[name]) {
+      if (args.length > 1) {
+        var callbackId = this._genetateId(name);
+        this._Callback[callbackId] = callback;
+      }
+      if (args.length > 2) {
+        return this[name](callbackId, param);
+      } else if (args.length == 2) {
+        return this[name](callbackId);
+      } else if (args.length == 1) {
+        return this[name]();
+      }
+    }
+  },
+  /**
+   *  生成回调id
+   * @param  {[type]} name [调用的原生方法名]
+   * @return [type]        [回调id]
+   */
+  _genetateId: function(name) {
+    var callbackId;
+    callbackId = name + "CB" + ("" + Date.now()).slice(-7);
+    return callbackId;
+  },
+  /**
+   * 用于原生回调的处理方法
+   * @param  {[type]} callbackId [每一个回调会有自己id]
+   * @param  {[type]} result     [原生返回的结果]
+   * @return [type]              [description]
+   */
+  NativeCallback: function(callbackId, result) {
+    if (this._Callback[callbackId]) {
+      this._Callback[callbackId](result);
+      delete this._Callback[callbackId];
+    } else {
+      console.info("NativeCallback can't found callbackId");
+    }
+  },
+  /**
+   * 选择与上传图片
+   * @param  {[type]} callbackId [用于回调]
+   * @param  {[type]} num        [可以选几张]
+   * @return [type]              [description]
+   */
+  choosePhoto:function(callbackId,num){
+    if (window.jsInterface) {
+      return window.jsInterface.choosePhoto(callbackId,num);
+    }
+  },
+  /**
+   * 获取当前应用版本号
+   * @return [type] [description]
+   */
+  getAppVersion: function() {
+    if (window.jsInterface) {
+      var appversion = window.jsInterface.getVersionName();
+      return appversion;
+    }
+  },
+
+};
+
+```
+调用方式
+```javascript
+/*异步调用*/
+NativeUtil.use(
+  "choosePhoto",
+  function(data) {
+    console.log(data)
+  },
+  num
+);
+/*同步调用*/
+var appVersion=NativeUtil.use(
+  "getAppVersion"
+);
+```

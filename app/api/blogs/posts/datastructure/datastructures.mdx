@@ -1,0 +1,130 @@
+---
+title: javascript数据结构
+date: 2017-11-29 23:22:40
+tags: 数据结构与算法
+---
+### 几种常见的数据结构
+1. Stack栈
+2. Queue队列
+3. LinkedList链表
+4. Set集合
+5. Map字典、散列表
+6. Tree树
+7. 图(还不理解)
+
+### Stack
+栈是一种遵从后进先出原则的有序集合
+ - push(value): 添加一个新元素到栈顶
+ - pop(): 移除栈顶的元素，并且返回移除的元素
+ - peek(): 返回栈顶的元素
+ - isEmpty(): 判断栈是否为空
+ - clear():清空栈
+ - size(): 返回栈元素个数
+
+应用：十进制转换二进制
+
+[stack code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/stack.js)
+
+### Queue
+队列是遵从先进先出原则的一组有序集合
+ - enqueue(value): 向队列尾部添加新元素
+ - dequeue(): 移除队列第一个元素，并返回该元素
+ - front(): 返回队列的第一个元素
+ - isEmpty(): 判断队列是否为空
+ - size(): 返回队列的元素个数
+
+ 其他修改版本的队列实现
+ - 优先队列 应用：医院排队
+  >需要构建一个包含优先级的元素
+  ```javascript
+  let Node=function(element,priority){
+    this.element=element;
+    this.priority=priority;
+  }
+  ```
+
+[queue code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/queue.js)
+### LinkedList
+链表是有序的元素集合，不同于集合，链表中的元素在内存中不是连续放置的，每个元素由一个存储元素本身的节点和一个指向下一个元素的引用组成
+ - append(element): 向链表尾处添加一个元素
+ - insert(position,element): 向指定位置添加一个元素
+ - remove(element): 移除指定元素
+ - indexOf(element): 返回元素在链表中的索引
+ - removeAt(position): 移除指定位置的元素
+ - isEmpty(): 判断链表是否为空
+ - size(): 返回链表元素个数
+ - toString(): 由于链表项使用了Node类，就需要重写继承自javascript对象默认的toString方法，让其只输出元素的值
+
+ 其他修改版本的队列实现
+ - 双向链表 :双向链表中链接是双向的，一个链接向上的一个链接向下的
+  ```javascript
+  let Node=function(element){
+    this.element=element;
+    this.prev=null;
+    this.next=null;
+  }
+  ```
+ - 循环链表 :循环链表与链表的唯一区别在于,最后一个元素指向下一个元素的指针不是null,而是第一个元素head
+
+ >ps:使用Stack 、Queue与LinkedList之间的区别
+ >- Stack 、Queue相对于链表来说数据结构简单，并且(再大多数语言中)数组的大小是固定的，不容易扩容，链表可以动态扩容
+ >- 从Stack 、Queue起点或中间插入或移除元素成本非常高，因为需要移动元素，而链表不需要移动元素
+
+[linkedlist code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/linkedlist.js)
+
+### Set
+集合是以[值,值]的形式储存元素，是由一组无序且唯一的项组成的
+
+  集合方法
+  - add(value): 添加一个元素到集合中
+  - delete(value): 删除集合中的一个元素
+  - has(value): 判断值是否在集合中
+  - clear(): 清空集合
+  - size(): 返回集合中的元素数量
+  - values(): 返回一个包含集合中所有值的数组
+
+  集合操作
+  - union 并集
+  - intersection 交集
+  - difference 差集
+  - subset 子集
+
+[Set code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/set.js)
+
+### Map,HashMap
+#### Map是以[键,值]的形式储存元素
+  Map方法
+  - set(key,value):向字典中添加元素
+  - delete(key):删除字典中指定的key
+  - get(key):获取指定key的value
+  - clear():清空字典
+  - size():返回字典中元素个数
+  - keys():以数组形式返回字典中所有的元素的键
+  - values():以数组形式返回字典中所有的元素的值
+
+[Map code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/map.js)
+#### HashMap的作用是尽可能快地在数据结构中找到一个值，使用HashMap可以知道该值的具体位置而不需要遍历
+HashMap方法
+- put(key,value)
+- get(key)
+- remove(key)
+
+##### HashMap的创建需要注意以下几部分
+- 散列函数 可以将键值转换成数字用来记录该值在数据结构中的位置
+- 处理散列表中的冲突
+  - 分离链接：用链表来存储某个位置的值
+  - 线性探索:当某个位置index已经被占据时候，则尝试index+1的位置，以此类推
+
+[HashMap code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/hashmap.js)
+### Tree
+树是一种分层数据的抽象模型，树中的每个元素都叫做节点，位于树顶部的节点叫根节点，每个节点（根节点除外）都有一个父节点以及零个或者多个子节点
+- insert(key):向树中插入一个值
+- search(key):在树中查找一个值，返回true or false
+- inOrderTraverse():中序遍历树节点,是一种从小到大的顺序访问所有节点
+- preOrderTraverse():先序遍历树节点,是一种优先于后代节点的顺序访问每个节点
+- postOrderTraverse():后序遍历树节点，是先访问节点的后代节点，在访问节点本身
+- min():返回树中最小值
+- max():返回树中最大值
+- remove(key):从树中移除某个值
+
+[BinarySearchTree code](https://github.com/annilq/blog/tree/master/jscode/datastructrues/BinarySearchTree.js)
