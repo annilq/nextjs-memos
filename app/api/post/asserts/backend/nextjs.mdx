@@ -1,0 +1,221 @@
+---
+title: nextjs小记
+date: 2022-11-11 17:14:01
+tags: nextjs
+---
+
+### 页面首次渲染是ssr，通过<code>link, router.push('/about')</code>过渡时候是csr
+
+### ssg
+ssg是在build阶段，所以各种数据需要提前知道，页面动态数据需要用<code>getStaticProps</code>导出，动态路由需要根据<code>getStaticPaths</code>导出
+#### getStaticProps  
+1. always runs on the server and never on the client
+2. getStaticProps always runs during next build
+
+```javascript
+export default function Blog({ posts }) {
+  // Render posts...
+}
+
+// This function gets called at build time
+export async function getStaticProps() {
+  // Call an external API endpoint to get posts
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  // By returning { props: { posts } }, the Blog component
+  // will receive `posts` as a prop at build time
+  return {
+    props: {
+      posts,
+    },
+  }
+}
+
+```
+#### getStaticPaths
+1. getStaticPaths 必须和 getStaticProps 一起用
+2. 返回值
+    #### paths:[{params:{a:1,id:1}}]
+      1. 如果页面名字是 pages/posts/[postId]/[commentId],  params 需包含 postId and commentId.
+      2. If the page name uses catch-all routes like pages/[...slug], then params should contain slug (which is an array). If this array is ['hello', 'world'], then Next.js will statically generate the page at /hello/world.
+
+    #### fallback
+    1. false  当访问到getStaticPaths方法没有返回的路径，都走到404
+    2. true  不支持next export
+    3. blocking 类似ssr 不支持next export
+
+```javascript
+function Post({ post }) {
+  // Render post...
+}
+
+// This function gets called at build time
+export async function getStaticPaths() {
+  // Call an external API endpoint to get posts
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  // Get the paths we want to pre-render based on posts
+  const paths = posts.map((post) => ({
+    params: { id: post.id },
+  }))
+
+  // We'll pre-render only these paths at build time.
+  // { fallback: false } means other routes should 404.
+  return { paths, fallback: false }
+}
+
+// This also gets called at build time
+export async function getStaticProps({ params }) {
+  // params contains the post `id`.
+  // If the route is like /posts/1, then params.id is 1
+  const res = await fetch(`https://.../posts/${params.id}`)
+  const post = await res.json()
+
+  // Pass post data to the page via props
+  return { props: { post } }
+}
+
+export default Post
+
+```
+### ssr 数据获取[参考](https://refine.dev/blog/next-js-getinitialprops-and-getserversideprops/)
+1. getInitialProps 遗留api,页面同构客户端执行代码时候 ，如果代码中包含数据库逻辑会报错（客户端没有数据库）
+2. getServerSideProps 页面同构客户端执行代码时候 ，会在客户端生成一个服务端api接口调用（可以包含数据库逻辑），运行把结果返回回来
+
+### 支持sass,可自定义配置参数
+
+### layout
+1. app layput
+2. page layout
+
+```javascript
+// pages/index.js
+
+import Layout from '../components/layout'
+import NestedLayout from '../components/nested-layout'
+
+export default function Page() {
+  return {
+    /** Your content */
+  }
+}
+
+Page.getLayout = function getLayout(page) {
+  return (
+    <Layout>
+      <NestedLayout>{page}</NestedLayout>
+    </Layout>
+  )
+}
+```
+```javascript
+// pages/_app.js
+export default function MyApp({ Component, pageProps }) {
+  // Use the layout defined at the page level, if available
+  const getLayout = Component.getLayout || ((page) => page)
+
+  return getLayout(<Component {...pageProps} />)
+}
+```
+### 动态加载
+1. 
+### 自动静态优化
+1. 没有<code>getInitialProps</code><code>getServerSideProps</code>的页面build时候直接生成.html
+2. 使用了<code>getInitialProps</code>的自定义 App组件则会关闭ssg优化
+
+
+## 内置组件
+### Script
+1. 页面加载
+```javascript
+// pages/index.tsx
+import Script from 'next/script'
+
+export default function Dashboard() {
+  return (
+    <>
+      <Script src="https://example.com/script.js" />
+    </>
+  )
+}
+```
+
+2. 应用加载
+```javascript
+//_app.ts
+import Script from 'next/script'
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      <Script src="https://example.com/script.js" />
+      <Component {...pageProps} />
+    </>
+  )
+}
+```
+
+### Image
+1. 本地图片不支持动态加载，需要在顶部用import加载已达到build时分析
+2. 远程加载需指定宽高
+
+
+### 配置代理
+
+1. 下载依赖 <code>npm install express http-proxy-middleware -D</code>
+2. 自定义服务器
+```javascript
+const express = require('express')
+const next = require('next')
+const { createProxyMiddleware } = require("http-proxy-middleware")
+
+// 配置运行端口
+const port = process.env.PORT || 3000
+// 判断是否为开发环境
+const dev = process.env.NODE_ENV !== 'production'
+// 初始化 app
+const app = next({ dev })
+const handle = app.getRequestHandler()
+
+// 代理配置表，这里和一般的 webpack 配置是一样的。
+const proxyTable = {
+  '/api': {
+    target: 'http://127.0.0.1:4000',
+    pathRewrite: {
+      '^/api': '/api'
+    },
+    changeOrigin: true
+  }
+}
+
+app.prepare().then(() => {
+  const server = express()
+
+  // 如果是开发环境，则代理接口
+  if (dev) {
+    server.use('/api', createProxyMiddleware(proxyTable['/api']));
+  }
+
+  // 托管所有请求
+  server.all('*', (req, res) => {
+    return handle(req, res)
+  })
+
+  server.listen(port, (err) => {
+    if (err) throw err
+    console.log(`> Ready on http://localhost:${port}`)
+  })
+}).catch(err => {
+    console.log('Error:::::', err)
+})
+```
+3. 编辑脚本
+```javascript
+ "scripts": {
+    "dev": "node server.js",
+    "build": "next build",
+    "start": "NODE_ENV=production node server.js"
+  }
+```

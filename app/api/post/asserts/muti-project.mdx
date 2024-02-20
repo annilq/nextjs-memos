@@ -1,0 +1,26 @@
+---
+title: 多项目管理方案
+date: 2022-06-24 10:51:01
+---
+
+##  多项目管理方案
+###  svn管理 
+#### svn externals
+1. 在各个项目中修改svn externals的代码都可以直接提交到svn externals地址，其他项目在update的时候会更新下来，涉及break change的修改可能会引起报错
+
+###  git管理 git submodule & monorepo
+#### git submodule
+1. git submodule 的方式和 svn externals比较像 但是版本控制可能更严格一些
+#### monorepo 
+1. monorepo 方式是将多个项目分为主项目以及各个子项目，代码在同一个仓库管理，各个子项目可以互相依赖
+2. git 仓库会比较大 每次运行时候可能会变慢，还不太熟悉
+#### git 分支管理，通过分支merge实现代码共享
+#### npm 
+1. 适合组件与工具共用，开发时候通过npm link实现实时更新
+
+
+
+#### 参考
+1. [git submodule](https://zhuanlan.zhihu.com/p/404615843)
+2. [monorepo](https://segmentfault.com/a/1190000039157365)
+2. [Publishing a TypeScript npm Package](https://medium.com/@augustas.skaburskas/publishing-a-typescript-npm-package-4b284ecd1b52)

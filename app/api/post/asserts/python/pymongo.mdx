@@ -1,0 +1,85 @@
+---
+title: 如何在fastapi中使用pymongo
+date: 2023-09-28 11:07:01
+---
+
+### 在 python 中使用 mongodb 中返回的 ObjectId 中不能被 json 序列化的问题
+
+#### 1.自定义 basemodel 实现"\_id"与"id"的转换
+
+#### 2.自定义 model 的 json_encoders 实现 uuid 以及 objectid 的序列化
+
+#### 3.统一数据类型，利用 uuid 将 model 中的 id 类型设置为 uuid 类型，并通过设置 Alisa="\_id",将模型 mongodb 中的 ObjectId 转换为 uuid
+
+```python
+from datetime import datetime
+
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
+from pydantic import BaseModel, Field, BaseConfig
+from typing import Generic, TypeVar, Generator, Any, Union, Dict
+
+RespT = TypeVar('respT')
+
+
+class OID(str):
+    @classmethod
+    def __get_validators__(cls) -> Generator:
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: Any, values) -> ObjectId:
+        try:
+            return ObjectId(str(v))
+        except InvalidId:
+            raise ValueError("Not a valid ObjectId")
+
+
+class MongoModel(BaseModel):
+    id: OID = Field(default_factory=ObjectId)
+
+    class Config(BaseConfig):
+        populate_by_name = True
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat(),
+            # ObjectId: lambda oid: str(oid),
+            OID: lambda oid: str(oid),
+        }
+
+    @classmethod
+    def from_mongo(cls, data: dict) -> Union["MongoModel", Dict]:
+        """We must convert _id into "id". """
+        if not data:
+            return data
+        id = data.pop("_id", None)
+        return cls(**dict(data, id=id))
+
+    def mongo(self, **kwargs: Any) -> dict[Any, Any]:
+        exclude_unset = kwargs.pop("exclude_unset", True)
+        by_alias = kwargs.pop("by_alias", True)
+
+        parsed = self.model_dump(
+            exclude_unset=exclude_unset,
+            by_alias=by_alias,
+            **kwargs,
+        )
+
+        # Mongo uses `_id` as default key. We should stick to that as well.
+        if "_id" not in parsed and "id" in parsed:
+            parsed["_id"] = parsed.pop("id")
+
+        return parsed
+
+
+class ResponseModel(BaseModel, Generic[RespT]):
+    code: int | None = 0
+    info: str | None = "操作成功"
+    resp: RespT
+
+```
+
+### 参考链接
+
+[FastApi & MongoDB - the full guide](https://github.com/tiangolo/fastapi/issues/1515)
+[Getting Started with MongoDB and FastAPI](https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/)
+[基于 FastAPI 与 MongoDB 的数据流梳理](https://hustyichi.github.io/2020/10/21/fastapi/)
