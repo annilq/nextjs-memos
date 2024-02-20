@@ -2,9 +2,8 @@ import Link from "next/link";
 import DateLabel from "./components/Date";
 import { getSortedPostsData } from "../api/post/util";
 
-export default function Home() {
+export default function Post() {
   const data = getSortedPostsData();
-  // console.log(data);
   return (
     <section className={`container mx-auto`}>
       <h2 className="text-2xl">Blog</h2>

@@ -62,8 +62,6 @@ export function getSortedPostsData() {
   const allPostsData = fileNames.map(({ dir, fileName }) => getPostMeta(dir, fileName));
 
   // Sort posts by date
-  console.log(allPostsData);
-
   return allPostsData.sort((a, b) => new Date(b.date).valueOf() - new Date(a.date).valueOf());
 }
 
