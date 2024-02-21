@@ -3,14 +3,14 @@ import DateLabel from "./components/Date";
 import { getSortedPostsData } from "../api/post/util";
 
 export default function Post() {
-  const data = getSortedPostsData();  
+  const data = getSortedPostsData();
   return (
     <section className={`container mx-auto`}>
       <h2 className="text-2xl">Blog</h2>
       <ul>
         {data?.map(({ id, date, title }) => (
           <li className="mb-4" key={id}>
-            <Link legacyBehavior href={`/post/${id}`}>
+            <Link legacyBehavior href={`/post/${id}`} className="text-blue-500 hover:underline">
               {title}
             </Link>
             <br />
