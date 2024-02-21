@@ -12,11 +12,12 @@ import rehypePrettyCode from "rehype-pretty-code";
 export interface PostMeta {
   id: string
   title: string
-  date: string
+  date: Date
 }
 
 export interface Post extends PostMeta {
   contentHtml: string | TrustedHTML
+  source: string
 }
 
 const postsDirectory = path.join(process.cwd(), "app", "api", "post", "asserts");
@@ -33,11 +34,8 @@ function getPostMeta(dir: string, fileName: string): PostMeta {
 
   // Combine the data with the id
   return {
+    ...matterResult.data as PostMeta,
     id,
-    ...matterResult.data,
-    title: matterResult.data.title,
-    // format to string ,or will pinic
-    date: matterResult.data.date.toISOString(),
   };
 }
 
@@ -56,6 +54,13 @@ function getPostsFromDir(dir: string) {
   return files;
 }
 
+async function getPostContent(id: string): Promise<string> {
+  const fileNames = getPostsFromDir(postsDirectory);
+  const fileObj = fileNames.find((file) => file.fileName.indexOf(id) > -1)!;
+  const fileContents = fs.readFileSync(path.join(fileObj.dir, fileObj.fileName), "utf8");
+  return fileContents
+}
+
 export function getSortedPostsData() {
   // Get file names under /posts
   const fileNames = getPostsFromDir(postsDirectory);
@@ -66,10 +71,8 @@ export function getSortedPostsData() {
 }
 
 export async function getPostData(id: string): Promise<Post> {
-  const fileNames = getPostsFromDir(postsDirectory);
-  const fileObj = fileNames.find((file) => file.fileName.indexOf(id) > -1)!;
-  const fileContents = fs.readFileSync(path.join(fileObj.dir, fileObj.fileName), "utf8");
 
+  const fileContents = await getPostContent(id)
   // Use gray-matter to parse the post metadata section
   const matterResult = matter(fileContents);
 
@@ -80,6 +83,7 @@ export async function getPostData(id: string): Promise<Post> {
     id,
     contentHtml,
     ...matterResult.data,
+    source:fileContents,
     title: matterResult.data.title,
     date: matterResult.data.date.toISOString(),
   };

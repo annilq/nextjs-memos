@@ -1,23 +1,27 @@
 import { getPostData } from "@/app/api/post/util";
 import Head from "next/head";
 import DateLabel from "../components/Date";
-import "./style.css";
+import { CustomMDX } from "../components/mdx-remote";
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const postData = await getPostData(params.id)
+
+  const { source, title, date } = await getPostData(params.id)
 
   return (
     <div className="container mx-auto">
       <Head>
-        <title>{postData.title}</title>
+        <title>{title}</title>
       </Head>
       <br />
       <article>
-        <h1 className="text-4xl font-bold my-4">{postData.title}</h1>
+        <h1 className="text-4xl font-bold my-4">{title}</h1>
         <div className="text-gray-400">
-          <DateLabel dateString={postData.date} />
+          <DateLabel date={date} />
         </div>
-        <div dangerouslySetInnerHTML={{ __html: postData.contentHtml }} />
+        <CustomMDX
+          // h1 now renders with `large-text` className
+          source={source}
+        />
       </article>
     </div>
   )
