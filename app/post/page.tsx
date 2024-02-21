@@ -5,15 +5,14 @@ import { getSortedPostsData } from "../api/post/util";
 export default function Post() {
   const data = getSortedPostsData();
   return (
-    <section className={`container mx-auto`}>
-      <h2 className="text-2xl">Blog</h2>
-      <ul>
+    <section className={`container p-6 bg-white`}>
+      <h2 className="text-2xl font-bold">Blog</h2>
+      <ul className="mt-4 space-y-6">
         {data?.map(({ id, date, title }) => (
-          <li className="mb-4" key={id}>
-            <Link legacyBehavior href={`/post/${id}`} className="text-blue-500 hover:underline">
+          <li key={id}>
+            <Link href={`/post/${id}`} className="text-blue-500 hover:underline block text-xl">
               {title}
             </Link>
-            <br />
             {date && (
               <small className="text-sm text-gray-500">
                 <DateLabel date={date} />

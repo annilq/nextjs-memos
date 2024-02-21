@@ -2,7 +2,7 @@
 
 import { Button, IconButton, Tooltip } from "@mui/joy";
 import useLocalStorage from "react-use/lib/useLocalStorage";
-import * as Icon from "lucide-react";
+import Icon from "@/components/Icon";
 import Navigation from "@/components/Navigation";
 
 import useResponsiveWidth from "@/hooks/useResponsiveWidth";
@@ -50,7 +50,7 @@ function Layout(props: { children: React.ReactNode }) {
       )}
       <main className="w-full h-auto min-h-full flex-grow shrink flex flex-col justify-start items-center">
         {!sm && <MobileHeader />}
-        <div className="w-full h-auto p-2">
+        <div className="w-full h-auto p-6">
           {props.children}
         </div>
       </main>
