@@ -50,7 +50,7 @@ function Layout(props: { children: React.ReactNode }) {
       )}
       <main className="w-full h-auto min-h-full flex-grow shrink flex flex-col justify-start items-center">
         {!sm && <MobileHeader />}
-        <div className="w-full h-auto p-6">
+        <div className="@container w-full max-w-5xl min-h-full flex flex-col justify-start items-center sm:pt-3 md:pt-6 pb-8">
           {props.children}
         </div>
       </main>
