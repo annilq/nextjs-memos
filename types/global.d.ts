@@ -16,6 +16,7 @@ declare global {
     parse: (content: string) => Node[];
     restore: (input: Node[]) => string;
   }
+  type prisma = PrismaClient
 }
 
-export {};
+export { };

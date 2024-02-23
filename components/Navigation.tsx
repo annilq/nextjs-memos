@@ -1,4 +1,4 @@
-import { Tooltip } from "@mui/joy";
+import { Button, Tooltip } from "@mui/joy";
 // import { useEffect } from "react";
 // import useCurrentUser from "@/hooks/useCurrentUser";
 // import { useInboxStore } from "@/store/v1";
@@ -8,6 +8,8 @@ import Icon from "./Icon";
 import UserBanner from "./UserBanner";
 import { cn } from "@/utils/utils";
 import ActiveLink from "./ActiveLink";
+import useSWR, { mutate } from "swr";
+import axios from "axios";
 
 interface NavLinkItem {
   id: string;
@@ -106,7 +108,7 @@ const Navigation = (props: Props) => {
   };
   const signInNavLink: NavLinkItem = {
     id: "header-auth",
-    path: "/auth",
+    path: "/auth/",
     title: t("common.sign-in"),
     icon: <Icon.LogIn className="w-6 h-auto opacity-70" />,
   };
@@ -121,7 +123,7 @@ const Navigation = (props: Props) => {
   //   ? [homeNavLink, timelineNavLink, resourcesNavLink, exploreNavLink, profileNavLink, inboxNavLink, archivedNavLink, settingNavLink]
   //   : [exploreNavLink, signInNavLink, aboutNavLink];
 
-    const navLinks: NavLinkItem[] = true
+  const navLinks: NavLinkItem[] = false
     ? [homeNavLink, timelineNavLink, resourcesNavLink, exploreNavLink, inboxNavLink, archivedNavLink, settingNavLink]
     : [exploreNavLink, signInNavLink, aboutNavLink];
 
