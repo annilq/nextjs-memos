@@ -8,8 +8,6 @@ import Icon from "./Icon";
 import UserBanner from "./UserBanner";
 import { cn } from "@/utils/utils";
 import ActiveLink from "./ActiveLink";
-import useSWR, { mutate } from "swr";
-import axios from "axios";
 
 interface NavLinkItem {
   id: string;
