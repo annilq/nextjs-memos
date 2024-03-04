@@ -106,7 +106,7 @@ const Navigation = (props: Props) => {
   };
   const signInNavLink: NavLinkItem = {
     id: "header-auth",
-    path: "/auth/",
+    path: "/login/",
     title: t("common.sign-in"),
     icon: <Icon.LogIn className="w-6 h-auto opacity-70" />,
   };

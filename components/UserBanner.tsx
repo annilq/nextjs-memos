@@ -6,6 +6,7 @@ import { useTranslate } from "@/utils/i18n";
 import Icon from "./Icon";
 import UserAvatar from "./UserAvatar";
 import { cn } from "@/utils/utils";
+// import { validateRequest } from "@/lib/auth";
 
 interface Props {
   collapsed?: boolean;
@@ -19,10 +20,13 @@ const UserBanner = (props: Props) => {
   // const user = useCurrentUser();
   // const title = user ? user.nickname || user.username : systemStatus.customizedProfile.name || "memos";
   // const avatarUrl = user ? user.avatarUrl : systemStatus.customizedProfile.logoUrl;
+  // const { user } = await validateRequest()
+  // console.log(user);
+  // console.log(user);
 
   const handleSignOut = async () => {
     // await authServiceClient.signOut({});
-    window.location.href = "/auth";
+    window.location.href = "/login";
   };
 
   return (
