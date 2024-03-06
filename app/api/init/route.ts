@@ -1,6 +1,6 @@
-import { getAllPostsMetaData } from "./util";
+import { initDbdata } from '../post';
 
 export async function GET(request: Request) {
-    const allPostsData = getAllPostsMetaData();
+    const allPostsData = await initDbdata();
     return Response.json({ data: allPostsData })
 }

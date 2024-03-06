@@ -1,8 +1,8 @@
-import { getSortedPostsData } from "../util";
+import { getPostData, getAllPostsMetaData } from "../util";
 
 export async function GET(request: Request) {
-    console.log(request);
-    
-    const allPostsData = getSortedPostsData();
-    return Response.json({ data: allPostsData })
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')!
+    const data = await getPostData(id)
+    return Response.json({ data })
 }

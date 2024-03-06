@@ -10,7 +10,7 @@ import rehypeStringify from 'rehype-stringify'
 import rehypePrettyCode from "rehype-pretty-code";
 
 export interface PostMeta {
-  id: string
+  name: string
   title: string
   date: Date
 }
@@ -22,9 +22,7 @@ export interface Post extends PostMeta {
 
 const postsDirectory = path.join(process.cwd(), "app", "api", "post", "asserts");
 
-function getPostMeta(dir: string, fileName: string): PostMeta {
-  const id = fileName.replace(/\.mdx$/, "");
-
+function parsemdContent(dir: string, fileName: string) {
   // Read markdown file as string
   const fullPath = path.join(dir, fileName);
   const fileContents = fs.readFileSync(fullPath, "utf8");
@@ -33,9 +31,19 @@ function getPostMeta(dir: string, fileName: string): PostMeta {
   const matterResult = matter(fileContents, { delimiters: "---" });
 
   // Combine the data with the id
+  return matterResult
+}
+
+function getPostMeta(dir: string, fileName: string): PostMeta {
+  const name = fileName.replace(/\.mdx$/, "");
+
+  // Use gray-matter to parse the post metadata section
+  const matterResult = parsemdContent(dir, fileName)
+
+  // Combine the data with the id
   return {
     ...matterResult.data as PostMeta,
-    id,
+    name,
   };
 }
 
@@ -54,14 +62,14 @@ function getPostsFromDir(dir: string) {
   return files;
 }
 
-async function getPostContent(id: string): Promise<string> {
+async function getPostContent(name: string): Promise<string> {
   const fileNames = getPostsFromDir(postsDirectory);
-  const fileObj = fileNames.find((file) => file.fileName.indexOf(id) > -1)!;
+  const fileObj = fileNames.find((file) => file.fileName.indexOf(name) > -1)!;
   const fileContents = fs.readFileSync(path.join(fileObj.dir, fileObj.fileName), "utf8");
   return fileContents
 }
 
-export function getSortedPostsData() {
+export function getAllPostsMetaData() {
   // Get file names under /posts
   const fileNames = getPostsFromDir(postsDirectory);
   const allPostsData = fileNames.map(({ dir, fileName }) => getPostMeta(dir, fileName));
@@ -70,9 +78,9 @@ export function getSortedPostsData() {
   return allPostsData.sort((a, b) => new Date(b.date).valueOf() - new Date(a.date).valueOf());
 }
 
-export async function getPostData(id: string): Promise<Post> {
+export async function getPostData(name: string): Promise<Post> {
 
-  const fileContents = await getPostContent(id)
+  const fileContents = await getPostContent(name)
   // Use gray-matter to parse the post metadata section
   const matterResult = matter(fileContents);
 
@@ -80,10 +88,10 @@ export async function getPostData(id: string): Promise<Post> {
 
   // Combine the data with the id and contentHtml
   return {
-    id,
+    name,
     contentHtml,
     ...matterResult.data,
-    source:fileContents,
+    source: fileContents,
     title: matterResult.data.title,
     date: matterResult.data.date.toISOString(),
   };
@@ -102,4 +110,14 @@ export async function parseContent(mdxString: string): Promise<string> {
     .process(mdxString)
 
   return String(file)
+}
+
+// this is used for init db data
+export function getAllPostsData() {
+  // Get file names under /posts
+  const fileNames = getPostsFromDir(postsDirectory);
+  const allPostsData = fileNames.map(({ dir, fileName }) => parsemdContent(dir, fileName));
+
+  // Sort posts by date
+  return allPostsData.sort((a, b) => new Date(b.data.date).valueOf() - new Date(a.data.date).valueOf());
 }
