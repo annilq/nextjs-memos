@@ -20,7 +20,7 @@ export interface Post extends PostMeta {
   source: string
 }
 
-const postsDirectory = path.join(process.cwd(), "app", "api", "post", "asserts");
+const postsDirectory = path.join(process.cwd(), "public", "posts");
 
 function parsemdContent(dir: string, fileName: string) {
   // Read markdown file as string

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const RootLayout: React.ComponentType<PropsWithChildren> = ({ children }) => (
-  <html lang="en">
+  <html lang="zh-cn">
     <body className="h-full bg-zinc-100 dark:bg-zinc-900">
       <ClientContext>
         <Layout>

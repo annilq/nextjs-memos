@@ -14,10 +14,10 @@ export const initDbdata = async () => {
     authorId,
     published: true
   })) satisfies Post[]
+
   const posts = await prisma.post.createMany({
     data: postsData
   });
+  
   return await prisma.post.findMany({})
 }
-
-initDbdata()
