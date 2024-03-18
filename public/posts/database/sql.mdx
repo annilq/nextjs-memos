@@ -127,14 +127,15 @@ GROUP BY purchase_price;
     2. 聚合函数
     3. GROUP BY 子句中指定的列名
 2. 在使用 GROUP BY子句中写了列的别名(因为执行熟悉)
-    >GROUP BY 不能写列的别名，因为执行顺序决定了别名还不存在
+    > GROUP BY 不能写列的别名，因为执行顺序决定了别名还不存在
 3. 不能在WHERE子句中使用聚合函数
 GROUP BY 与 WHERE 并用时，SELECT 语句的执行顺序是
->FROM->WHERE->GROUP BY->SELECT
+> FROM->WHERE->GROUP BY->SELECT
 
 ### HAVING 子句
 
 说明：WHERE 子句用于指定行的条件,HAVING 子句用于指定组的条件
+
 #### HAVING子句构成要素
 1. 常数
 2. 聚合函数
@@ -149,8 +150,7 @@ HAVING SUM(sale_price) > 5000
 
 ```
 使用顺序
->FROM->WHERE->GROUP BY->HAVING->SELECT
-
+>SELECT → FROM → WHERE → GROUP BY → HAVING
 ### ORDER BY 多个排序键，优先使用左侧的键
 ```sql
 SELECT
@@ -160,8 +160,7 @@ ORDER BY sale_price ASC, product_id;
 
 ```
 使用顺序
->FROM->WHERE->GROUP BY->HAVING->SELECT->ORDER BY
-
+> FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
 可以使用聚合函数排序
 ```sql
 SELECT

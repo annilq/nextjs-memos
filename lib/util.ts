@@ -2,12 +2,12 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 // next mdx 
-import { unified } from 'unified'
-import remarkParse from 'remark-parse'
-import remarkRehype from 'remark-rehype'
-import rehypeSanitize from 'rehype-sanitize'
-import rehypeStringify from 'rehype-stringify'
-import rehypePrettyCode from "rehype-pretty-code";
+// import { unified } from 'unified'
+// import remarkParse from 'remark-parse'
+// import remarkRehype from 'remark-rehype'
+// import rehypeSanitize from 'rehype-sanitize'
+// import rehypeStringify from 'rehype-stringify'
+// import rehypePrettyCode from "rehype-pretty-code";
 
 export interface PostMeta {
   name: string
@@ -54,19 +54,19 @@ function getPostsFromDir(dir: string) {
 // we can use nextMdx for ssr
 // use below parseContent to parse mdx
 
-export async function parseContent(mdxString: string): Promise<string> {
-  const file = await unified()
-    .use(remarkParse) // Convert into markdown AST
-    .use(remarkRehype) // Transform to HTML AST
-    .use(rehypeSanitize) // Sanitize HTML input
-    .use(rehypePrettyCode, {
-      // See Options section below.
-    })
-    .use(rehypeStringify) // Convert AST into serialized HTML
-    .process(mdxString)
+// export async function parseContent(mdxString: string): Promise<string> {
+//   const file = await unified()
+//     .use(remarkParse) // Convert into markdown AST
+//     .use(remarkRehype) // Transform to HTML AST
+//     .use(rehypeSanitize) // Sanitize HTML input
+//     .use(rehypePrettyCode, {
+//       // See Options section below.
+//     })
+//     .use(rehypeStringify) // Convert AST into serialized HTML
+//     .process(mdxString)
 
-  return String(file)
-}
+//   return String(file)
+// }
 
 // this is used for init db data
 export function getAllPostsData() {

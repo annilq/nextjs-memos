@@ -1,5 +1,5 @@
 
-import GitHooks from "@/app/api/post/asserts/git-hooks.mdx";
+import GitHooks from "@/public/posts/git-hooks.mdx";
 
 export default function Home() {
     return (
